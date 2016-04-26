@@ -1,0 +1,6 @@
+import(plyr) 
+import(reshape2) 
+import(TMB)
+importFrom(reshape, cast)
+useDynLib(growmod)
+exportPattern("^[^\\.]")
