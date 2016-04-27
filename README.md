@@ -5,3 +5,4 @@ Observations of individual sizes can be missing, but covariates cannot be missin
 
 Models are fit using maximum marginal likelihood estimation via the Template Model Builder (TMB) package https://github.com/kaskr/adcomp
 
+This package is part of a manuscript in preparation for publication.

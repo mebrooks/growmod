@@ -4,18 +4,18 @@ Type objective_function<Type>::operator() ()
 {
 	/***************INITIALIZATION SECTION*******************************/
 	//Read in data
-	DATA_VECTOR(size_obs); //observed sizes [nobs]
-	DATA_FACTOR(indiv_size_obs);//indiv associated with each elem of size_obs [nobs]
-	DATA_FACTOR(year_size_obs); //year associated with each elem of size_obs [nobs]
+	DATA_VECTOR(obs); //observed sizes [nobs]
+	DATA_FACTOR(indiv_obs);//indiv associated with each elem of obs [nobs]
+	DATA_FACTOR(time_obs); //time associated with each elem of obs [nobs]
 	DATA_MATRIX(X); //covariates [nlatent by npred]
 	DATA_MATRIX(M); //covariates & intercept to interact with size [nlatent by npred]
 	DATA_MATRIX(B); //covariates for first size [nind by npred]
-	DATA_FACTOR(byr); //birth year of all indiv [nind]
-	DATA_FACTOR(lyr); //last year of all indiv (death year or 2014 if still alive) [nind]
+	DATA_FACTOR(t0); //birth time of all indiv [nind]
+	DATA_FACTOR(T); //last time of all indiv (death time or 2014 if still alive) [nind]
 	DATA_FACTOR(indiv_size);//indiv associated with each elem of size & row of X [nlatent]
-	DATA_FACTOR(year_size); //year associated with each elem of size & row of X [nlatent]
-	DATA_VECTOR(age_size);
-	DATA_IMATRIX(lookup);//elem of size or row of X for indiv i (row) in year y (col) [nind by nyears]
+	DATA_FACTOR(time_size); //time associated with each elem of size & row of X [nlatent]
+	DATA_VECTOR(age_size); //age associated with each elem of size & row of X [nlatent]
+	DATA_IMATRIX(lookup);//elem of size or row of X for indiv i (row) in time y (col) [nind by ntimes]
 	DATA_INTEGER(NAint);
 	
 	//Define parameters to be estimated
@@ -26,18 +26,18 @@ Type objective_function<Type>::operator() ()
 	PARAMETER_VECTOR(theta); //coeffs for effects on first size
 	PARAMETER_VECTOR(indiv_growth_dev); //individual growth deviates from intercept
 	PARAMETER_VECTOR(indiv_age_growth_dev); //individual growth deviates from age slope
-	PARAMETER_VECTOR(year_growth_dev); //year growth deviates from intercept
+	PARAMETER_VECTOR(time_growth_dev); //time growth deviates from intercept
 	PARAMETER_VECTOR(cohort_growth_dev); //cohort growth deviates
 	
-	PARAMETER(log_year_growth_sd); //SD of year RE intercept
-	Type year_growth_sd=exp(log_year_growth_sd);
+	PARAMETER(log_time_growth_sd); //SD of time RE intercept
+	Type time_growth_sd=exp(log_time_growth_sd);
 	PARAMETER(log_indiv_growth_sd); //SD of individual RE intercept
 	Type indiv_growth_sd=exp(log_indiv_growth_sd);
 	PARAMETER(log_indiv_age_growth_sd); //SD of individual RE age-slope
 	Type indiv_age_growth_sd=exp(log_indiv_age_growth_sd);
 	PARAMETER(log_cohort_growth_sd);
 	Type cohort_growth_sd=exp(log_cohort_growth_sd);
-	PARAMETER(log_size0_sd);	//SD of lambs' sizes in first August of life
+	PARAMETER(log_size0_sd);	//SD of sizes in first timepoint of life
 	Type size0_sd=exp(log_size0_sd);
 	PARAMETER(log_sigma_proc); //SD of process error
 	Type sigma_proc=exp(log_sigma_proc);
@@ -50,9 +50,6 @@ Type objective_function<Type>::operator() ()
 	Type pred; //to store predicted size
 	Type jnll=0; //the joint negative log-likelihood is the objective function
 	
-	int nyears=year_growth_dev.size();
-	int nind=indiv_growth_dev.size(); //=byr.size();
-	int nobs=size_obs.size();
 	/***************CALCULATION SECTION*******************************/
 	//Do matrix multiplication on the linear predictors to use in growth process model
 	vector<Type> Xbeta= X*beta;
@@ -60,33 +57,29 @@ Type objective_function<Type>::operator() ()
 	vector<Type> Btheta= B*theta;
 	
 	//PROCESS MODEL
-	for(int i=0; i<nind; i++)//for each individual
+	for(int i=0; i<indiv_growth_dev.size(); i++)//for each individual
 	{
-		jnll-= dnorm(size(lookup(i,byr(i))), Btheta(i), size0_sd, true); //lamb size
-//		jnll-= dnorm(size(lookup(i,byr(i))), size0_mu, size0_sd, true); //lamb size
-		for(int y=byr(i); y<lyr(i); y++)//for each year of individual i's life
+		jnll-= dnorm(size(lookup(i,t0(i))), Btheta(i), size0_sd, true); //lamb size
+		for(int t=t0(i); t<T(i); t++)//for each time of individual i's life
 		{
-			if(lookup(i,y+1)==NAint)
-				std::cerr << "\n Accessing an invalid (individual, year) combination at ("<<i<<", "<<y+1<<
-					"). \n lookup must agree with byr and lyr.";
-			if(lookup(i,y)==NAint)
-				std::cerr << "\n Accessing an invalid (individaul, year) combination at ("<<i<<", "<<y<<
-					"). \n lookup must agree with byr and lyr.";
+			if(lookup(i,t+1)==NAint)
+				std::cerr << "\n Accessing an invalid (individual, time) combination at ("<<i<<", "<<t+1<<
+					"). \n Each individual must have a row of data for every timepoint from t0 to T, even when observations are missing.";
 			//predict the next size based on the linear mixed model
-			pred=Meta(lookup(i,y+1))*size(lookup(i,y)) +
-				Xbeta(lookup(i,y+1)) + 
+			pred=Meta(lookup(i,t+1))*size(lookup(i,t)) +
+				Xbeta(lookup(i,t+1)) + 
 				indiv_growth_dev(i) + 
-				indiv_age_growth_dev(i)*age_size(lookup(i,y+1)) + 
-				year_growth_dev(y+1) +
-				cohort_growth_dev(byr(i));
+				indiv_age_growth_dev(i)*age_size(lookup(i,t+1)) + 
+				time_growth_dev(t+1) +
+				cohort_growth_dev(t0(i));
 				
 			//add the process to the joint negative log-likelihood
-			jnll -= dnorm(size(lookup(i,y+1)), pred, sigma_proc, true);	
+			jnll -= dnorm(size(lookup(i,t+1)), pred, sigma_proc, true);	
 		}
 	}
 	//OBSERVATIONS
-	for(int o=0; o<nobs; o++)//for each observation
-		jnll-= dnorm(size_obs(o), size(lookup(indiv_size_obs(o), year_size_obs(o))), sigma_obs, true); 
+	for(int o=0; o<obs.size(); o++)//for each observation
+		jnll-= dnorm(obs(o), size(lookup(indiv_obs(o), time_obs(o))), sigma_obs, true); 
 	//RANDOM EFFECTS
 	if(CppAD::Variable(log_indiv_growth_sd))//indiv random intercept
 	{
@@ -127,14 +120,14 @@ Type objective_function<Type>::operator() ()
 			}
 		}
 	}
-	//add random  effects of year into the joint negative log-likelihood
-	for(int y=0; y<year_growth_dev.size(); y++)
+	//add random  effects of time into the joint negative log-likelihood
+	for(int t=0; t<time_growth_dev.size(); t++)
 	{
-		if(CppAD::Variable(year_growth_dev(y)))
-			jnll-= dnorm(year_growth_dev(y), Type(0), year_growth_sd, true);
+		if(CppAD::Variable(time_growth_dev(t)))
+			jnll-= dnorm(time_growth_dev(t), Type(0), time_growth_sd, true);
 		
-		if(CppAD::Variable(cohort_growth_dev(y)))
-			jnll-= dnorm(cohort_growth_dev(y), Type(0), cohort_growth_sd, true);
+		if(CppAD::Variable(cohort_growth_dev(t)))
+			jnll-= dnorm(cohort_growth_dev(t), Type(0), cohort_growth_sd, true);
 	}	
 	/***************POSTHOC OUTPUT SECTION*******************************/
 	//Get CI of derived parameters
@@ -151,11 +144,11 @@ Type objective_function<Type>::operator() ()
 				ADREPORT(indiv_cor);
 		}
 	}
-	if(CppAD::Variable(log_year_growth_sd))
+	if(CppAD::Variable(log_time_growth_sd))
 	{
-		Type yearCV=year_growth_sd/beta[0];
-		ADREPORT(yearCV);
-		ADREPORT(year_growth_sd);
+		Type timeCV=time_growth_sd/beta[0];
+		ADREPORT(timeCV);
+		ADREPORT(time_growth_sd);
 	}
 	if(CppAD::Variable(log_cohort_growth_sd))
 	{

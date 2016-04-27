@@ -1,7 +1,6 @@
 NAint=-999999
 ###########################################
-organize_data=function(data, sigma_obs)
-{
+organize_data=function(data, sigma_obs){
 
 if(!all(c("size", "t", "t0", "ID") %in% names(data))){stop("data must contain size, t, t0, and ID.")}
 if(!min(data$t0)>=min(data$t)){stop("The minimum t0 must be >= to minimum t so that predictors are available from the beginning.")}
@@ -13,10 +12,12 @@ data=transform(data, it=t-min(t),
 			)
 obs=na.omit(data[,c("size", "iID", "it")])
 nind=length(unique(obs$iID))
-nyears=length(unique(data$it))
-minyear=min(data$t)
+ntimes=length(unique(data$it))
+mintime=min(data$t)
 
-indivdat=ddply(data, ~iID, summarize, t0=t0[1], T=max(t))
+indivdat=ddply(data, ~iID, summarize, t0=t0[1], T=max(t), 
+					bad=any(!(t0[1]:max(t) %in% t)))
+if(any(indivdat$bad)){stop("Each individual must have a row of data for every timepoint from t0 to max(t), even when size observations are missing. Those rows can have NA in the size column, but must contain any predictors needed for formulaX and formulaM.")}
 if(any(is.na(indivdat$t0))){stop("Each individual must have a birth time (t0).")}
 
 #take care of repeated measures at the same time point
@@ -28,13 +29,13 @@ tmp$value=0:(nrow(tmp)-1)
 tmp2=reshape::cast(tmp, iID~it, fill= NAint)[,-1]
 lookup =as.matrix(tmp2)
 
-Ldat=list(size_obs=obs$size , #logsize observed
-		indiv_size_obs=obs$iID, #indiv corresponding to observed size
-		year_size_obs=obs$it, #year corresponding to observed size
-		byr= indivdat$t0-minyear,
-		lyr= indivdat$T-minyear,
+Ldat=list(obs=obs$size , #logsize observed
+		indiv_obs=obs$iID, #indiv corresponding to observed size
+		time_obs=obs$it, #time corresponding to observed size
+		t0= indivdat$t0-mintime,
+		T= indivdat$T-mintime,
 		indiv_size= preddat $ iID,
-		year_size= preddat $it,
+		time_size= preddat $it,
 		age_size=preddat$t-preddat$t0,
 		lookup= lookup,
 		sigma_obs=sigma_obs,
@@ -42,16 +43,16 @@ Ldat=list(size_obs=obs$size , #logsize observed
 		NAint=NAint
 	)
 Lpin=list(size=preddat$size, #rep(0, length(Minit)), 
-		log_year_growth_sd=0,
+		log_time_growth_sd=0,
 		log_indiv_growth_sd=0,
 		log_cohort_growth_sd=0,
 		log_resid_growth_sd=0,
 		log_size0_sd=0,
-		size0_mu=mean(subset(dat, t==t0)$size),
+		size0_mu=mean(subset(data, t==t0)$size),
 		indiv_growth_dev=rep(0, nind),
-		year_growth_dev=rep(0, nyears),
+		time_growth_dev=rep(0, ntimes),
 		log_sigma_proc=0,
-		cohort_growth_dev=rep(0, nyears),
+		cohort_growth_dev=rep(0, ntimes),
 		scale_indiv_cor=0,
 		log_indiv_age_growth_sd=0,
 		indiv_age_growth_dev=rep(0, nind)
@@ -59,7 +60,7 @@ Lpin=list(size=preddat$size, #rep(0, length(Minit)),
 	return(list(Ldat= Ldat, Lpin= Lpin))
 }
 ###########################################
-growmod=function(formulaX, formulaM, data, estobserr=FALSE, sigma_obs = 0.03554119, predfirstm =NULL, DLL="growmod", silent=TRUE, selecting=FALSE, REyear=TRUE, REID=TRUE, REcohort=TRUE, REageID=FALSE,...)
+growmod=function(formulaX, formulaM, data, estobserr=FALSE, sigma_obs = 0.03554119, predfirstsize =NULL, DLL="growmod", silent=TRUE, selecting=FALSE, REtime=TRUE, REID=TRUE, REcohort=TRUE, REageID=FALSE,...)
 {
 	ogd=organize_data(data, sigma_obs)
 	Ldat= ogd$Ldat
@@ -79,10 +80,10 @@ growmod=function(formulaX, formulaM, data, estobserr=FALSE, sigma_obs = 0.035541
 		map$log_cohort_growth_sd=as.factor(NA) 
 		map$cohort_growth_dev=as.factor(rep(NA, length(Lpin$cohort_growth_dev)))
 	}
-	if(!REyear)
+	if(!REtime)
 	{
-		map$log_year_growth_sd=as.factor(NA) 
-		map$year_growth_dev=as.factor(rep(NA, length(Lpin$year_growth_dev)))
+		map$log_time_growth_sd=as.factor(NA) 
+		map$time_growth_dev=as.factor(rep(NA, length(Lpin$time_growth_dev)))
 	}
 	if(!REID)
 	{
@@ -96,7 +97,7 @@ growmod=function(formulaX, formulaM, data, estobserr=FALSE, sigma_obs = 0.035541
 		map$log_indiv_age_growth_sd=as.factor(NA) 
 		map$indiv_age_growth_dev=as.factor(rep(NA, length(Lpin$indiv_age_growth_dev)))
 	}
-	random=c("indiv_growth_dev", "indiv_age_growth_dev", "year_growth_dev","cohort_growth_dev", "size")[c(REID, REageID, REyear, REcohort, TRUE)]
+	random=c("indiv_growth_dev", "indiv_age_growth_dev", "time_growth_dev","cohort_growth_dev", "size")[c(REID, REageID, REtime, REcohort, TRUE)]
 	##################################################
 	#What to do about observation error
 	if(!estobserr)
@@ -110,15 +111,15 @@ growmod=function(formulaX, formulaM, data, estobserr=FALSE, sigma_obs = 0.035541
 	}
 	##################################################
 	#What to do about first size
-	if(is.null(predfirstm))
+	if(is.null(predfirstsize))
 	{
-		Ldat$B=matrix(1, nrow=length(Ldat$byr), ncol=1)#just using byr to get length right
+		Ldat$B=matrix(1, nrow=length(Ldat$t0), ncol=1)#just using t0 to get length right
 		Lpin$theta=1
 	}	
-	if(!is.null(predfirstm))
+	if(!is.null(predfirstsize))
 	{
-		Ldat$B=predfirstm
-		Lpin$theta=rep(0, ncol(predfirstm))
+		Ldat$B=predfirstsize
+		Lpin$theta=rep(0, ncol(predfirstsize))
 	}
 	##################################################
 	#TMB fit
@@ -132,14 +133,31 @@ growmod=function(formulaX, formulaM, data, estobserr=FALSE, sigma_obs = 0.035541
 	#else
 	sdr=sdreport(obj)
 	if(!any(is.na(summary(sdr, "fixed")))){
-		mod=list(parList=obj$env$parList(), fit=fit, sdr=sdr, Xnames=colnames(Ldat$X), Mnames=colnames(Ldat$M), formulaX= formulaX, formulaM= formulaM, AIC=TMBAIC(fit))
+		mod=list(parList=obj$env$parList(), 
+				fit=fit, 
+				sdr=sdr, 
+				Xnames=colnames(Ldat$X), Mnames=colnames(Ldat$M), 
+				formulaX= formulaX, formulaM= formulaM, 
+				AIC=TMBAIC(fit),
+				nobs=length(Ldat$obs),
+				nmis=length(Lpin$size)-length(Ldat$obs),
+				recap=length(Ldat$obs)/length(Lpin$size)
+				)
 		class(mod)="growmod"
 		return(mod)
 	}
 	#else
 	warning("some values of sdreport were NA")
-	mod=list(parList =obj$env$parList(), fit=fit, sdr=sdr, Xnames=colnames(Ldat$X), 
-			Mnames=colnames(Ldat$M),formulaX= formulaX, formulaM= formulaM, AIC=NA, message=fit$message)
+	mod=list(parList=obj$env$parList(), 
+				fit=fit, 
+				sdr=sdr, 
+				Xnames=colnames(Ldat$X), Mnames=colnames(Ldat$M), 
+				formulaX= formulaX, formulaM= formulaM, 
+				AIC=NA,
+				nobs=length(Ldat$obs),
+				nmis=length(Lpin$size)-length(Ldat$obs),
+				recap=length(Ldat$obs)/length(Lpin$size) 
+				)
 	class(mod)="growmod"
 	return(mod)
 }
@@ -177,20 +195,27 @@ summary.growmod=function(mod){
 	cat("Formula M: ", as.character(mod$formulaM), "\n\n")
 	cat("Convergence: ", as.character(mod$fit$message), "\n")
 	cat("AIC: ", as.character(mod$AIC), "\n\n")
+	cat("number of observations: ", as.character(mod$nobs), "\n")
+	cat("number of missing observations: ", as.character(mod$nmis), "\n")
+	cat("recapture rate: ", as.character(round(mod$recap, 3)), "\n")
+
 	cat("Fixed and Random effects: \n")
 	print(extract_coefs(mod)[,-3])
 }	
 ###########################################
-extract_pred=function(x, Ldat, Lpin){
-	rr=summary(x$sdr, "random")
+extract_pred=function(mod, data){
+	od=organize_data(data, 0)
+	rr=summary(mod$sdr, "random")
 	nr=rownames(rr)
 	size=rr[nr=="size",]
-	pred=data.frame(est=size[,1], se=size[,2], obs=Lpin$size, age=Ldat$Predictors$age, indiv=Ldat$indiv_size, lamb=Ldat$Predictors$lamb, nao=Ldat$Predictors$nao, pop=Ldat$Predictors$pop)
+	pred=data.frame(est=size[,1], se=size[,2], age=od$Ldat$age, ID=d$Ldat$Predictors$ID, lamb=od$Ldat$Predictors$lamb, wnao=od$Ldat$Predictors$wnao, pop=od$Ldat$Predictors$prevpop)
 	return(pred)
 }	
 ###########################################
-extract_indiv_dev=function(x, Ldat, Lpin){
-	i=x$parList$indiv_growth_dev
+extract_indiv_dev=function(mod, data){
+	od=organize_data(data, 0)
+	Ldat=od$Ldat
+	i=mod$parList$indiv_growth_dev
 	dat=Ldat$Predictors
 	dat$dev=i[Ldat$Predictors$iID+1]
 	return(dat)
@@ -239,26 +264,26 @@ pred_expsize=function(m1, newdata){
 	M=model.matrix(m1$formulaM, newdata)
 	r=summary(m1$sdr, "report")
 	if("indiv_age_growth_sd" %in%rownames(r))
-		stop("pred_expm is only implemented for models without random slopes")
+		stop("pred_expsize is only implemented for models without random slopes")
 	sumsigmasq=sum(r[grep("growth_sd",rownames(r)) , "Estimate"]^2)+r["sigma_proc","Estimate"]^2
 	return(exp(X%*%m1$parList$beta + M%*%m1$parList$eta*newdata$size + 0.5*sumsigmasq))
 }	
 
 ###########################################
 ##' Simulate the growth of individuals without any environmental predictors
-##' param pars is a vector contianing the following named terms: (Intercept), age,  I(age^2), size, size:age, sigma_proc, year_growth_sd, indiv_growth_sd, indiv_age_growth_sd, indiv_cor, size0_mu, size0_sd, 
+##' param pars is a vector contianing the following named terms: (Intercept), age,  I(age^2), size, size:age, sigma_proc, time_growth_sd, indiv_growth_sd, indiv_age_growth_sd, indiv_cor, size0_mu, size0_sd, 
 ##' param nind is the number of individuals to simulate
-##' param nyear is the number of years spanned bt the dataset
+##' param ntime is the number of times spanned bt the dataset
 ##' param maxage is the maximum age that all individuals reach (not used if lifespans is specified)
 ##' param lifespans is a set of intergers to be resampled from. It should reflect the frequency of each lifespan.
-simgrow=function(pars, nind=150, nyear=29, maxage=12, lifespans=NULL){
+simgrow=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL){
 
-	year_growth_dev=rnorm(nyear, sd= pars['year_growth_sd'])#year random effects
+	time_growth_dev=rnorm(ntime, sd= pars['time_growth_sd'])#time random effects
 
-	byr=sample(x=nyear, size=nind, replace=TRUE)#birth year for each indiv
-	if(is.null(lifespans)){	dyr=pmin(byr+ maxage, nyear)
+	t0=sample(x=ntime, size=nind, replace=TRUE)#birth time for each indiv
+	if(is.null(lifespans)){	T=pmin(t0+ maxage, ntime)
 		}else{
-		dyr=pmin(byr+ sample(x=lifespans, size=nind, replace=TRUE), nyear)
+		T=pmin(t0+ sample(x=lifespans, size=nind, replace=TRUE), ntime)
 	}
 	if(is.na(pars['indiv_age_growth_sd'])){
 		pars['indiv_age_growth_sd']=0
@@ -275,8 +300,8 @@ simgrow=function(pars, nind=150, nyear=29, maxage=12, lifespans=NULL){
 	count=1
 	for(i in 1:nind)
 	{
-		b=byr[i]
-		d=dyr[i]
+		b=t0[i]
+		d=T[i]
 		temp=data.frame(size=rep(NA, d-b+1), t=b:d, ID=i, age=0:(d-b))
 		temp$size[1]=rnorm(1, pars['size0_mu'], pars['size0_sd'])#first size
 		temp$t0=b
@@ -289,7 +314,7 @@ simgrow=function(pars, nind=150, nyear=29, maxage=12, lifespans=NULL){
 									(pars['age']+idev[i,2])*temp$age[y-b+1] +
 									pars['I(age^2)']*temp$age[y-b+1]^2 + 
 									(pars['size'] + pars['size:age']*temp$age[y-b+1])*temp$size[y-b+1] +
-									year_growth_dev[y], 
+									time_growth_dev[y], 
 									pars['sigma_proc'])		
 				count=count+1
 			}
@@ -300,16 +325,16 @@ simgrow=function(pars, nind=150, nyear=29, maxage=12, lifespans=NULL){
 	return(dat)
 }	
 ###########################################
-##' param pars is a vector contianing the following named terms: (Intercept), age,  I(age^2), size, size:age, sigma_proc, year_growth_sd, indiv_growth_sd, indiv_age_growth_sd, indiv_cor, size0_mu, size0_sd, 
+##' param pars is a vector contianing the following named terms: (Intercept), age,  I(age^2), size, size:age, sigma_proc, time_growth_sd, indiv_growth_sd, indiv_age_growth_sd, indiv_cor, size0_mu, size0_sd, 
 ##' param nind is the number of individuals to simulate
-##' param nyear is the number of years spanned bt the dataset
+##' param ntime is the number of times spanned bt the dataset
 ##' param maxage is the maximum age that all individuals reach (not used if lifespans is specified)
 ##' param lifespans is a set of intergers to be resampled from. It should reflect the frequency of each lifespan.
-##' param recap is the probability of captuing an individual in any year when it was alive.
+##' param recap is the probability of captuing an individual in any time when it was alive.
 ##' param sigma_obs is the standard deviation of the observation error with the same units as size (e.g. log kg).
-simobs=function(pars, nind=150, nyear=29, maxage=12, lifespans=NULL, recap=.5, sigma_obs=0.03554119)
+simobs=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL, recap=.5, sigma_obs=0.03554119)
 {
-	dat= simgrow(pars=pars, nind=nind, nyear=nyear, maxage= maxage, lifespans= lifespans)
+	dat= simgrow(pars=pars, nind=nind, ntime=ntime, maxage= maxage, lifespans= lifespans)
 
 	#make sure there's at least one obser per indiv.
 	sdat=split(dat, dat$ID)
