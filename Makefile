@@ -12,7 +12,15 @@ all:
 	make doc-update
 	make build-package
 	make install
-	make pdf
+
+
+doc-update: $(PACKAGE)/R/*.R
+	echo "library(roxygen2);roxygenize(\"$(PACKAGE)\",roclets = c(\"collate\", \"rd\"))" | $(R) --slave
+	@touch doc-update
+
+namespace-update :: $(PACKAGE)/NAMESPACE
+$(PACKAGE)/NAMESPACE: $(PACKAGE)/R/*.R
+	echo "library(roxygen2);roxygenize(\"$(PACKAGE)\",roclets = c(\"namespace\"))" | $(R) --slave
 
 
 build-package: $(TARBALL)
@@ -28,3 +36,6 @@ quick-install: $(PACKAGE)/src/growmod.so
 
 $(PACKAGE)/src/growmod.so: $(PACKAGE)/src/growmod.cpp
 	cd $(PACKAGE)/src; echo "library(TMB); compile('growmod.cpp')" | R --slave
+
+clean:
+	\rm -f install doc-update
