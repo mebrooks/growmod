@@ -4,10 +4,10 @@
 \alias{extract_coefs}
 \title{Extract coefficients from a fitted model and give the coefficients more informative names based on the specified formulas.}
 \usage{
-extract_coefs(x, CV = FALSE, size0 = FALSE)
+extract_coefs(mod, CV = FALSE, size0 = FALSE)
 }
 \arguments{
-\item{x}{an object of class growmod}
+\item{mod}{an object of type \code{growmod} that was fit using the \code{growmod()} function. See \code{?growmod} for details.}
 
 \item{CV}{logical - Should estimates of the coefficients of variance (variance/intercept) be reported?}
 

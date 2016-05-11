@@ -23,4 +23,8 @@ Simulate growth
 \details{
 Covariates other than age are not implemented. Birth times are uniformly distributed across the time series. Observations of an individual stop either when it reaches the end of its lifespan, or when time reaches \code{ntime}.
 }
+\examples{
+true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, size=.6, "size:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
+sg=simgrow(true, nind=10, ntime=20)
+}
 

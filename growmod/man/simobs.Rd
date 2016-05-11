@@ -31,4 +31,8 @@ Simulate observed sizes.
 \details{
 Covariates other than age are not implemented yet. This function calls \code{simgrow()}.
 }
+\examples{
+true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, size=.6, "size:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
+sg=simobs(true, nind=10, ntime=20)
+}
 

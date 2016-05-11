@@ -84,16 +84,22 @@ Lpin=list(size= noreps$size, #rep(0, length(Minit)),
 ##' @param REageID logical - estimate a random slope on age for each individual (only use in models that include age in formulaX)
 ##'
 ##' @return a list of objects in the correct format to be read in by the TMB model defined in \code{growmod.cpp} with the exception of \code{beta}, \code{eta}, \code{M}, and \code{X} which depend on the model formulas and are defined in the growmod function.
-##' @details data must at least the following columns:\code{size, t, t0}, and \code{ID}. \code{size} is the size of an individual on the log scale. \code{t} is the point in time when an observation was made. \code{t} must be in discrete units (i.e. integers) with increments of 1. \code{t0} is the time when an individual was born. \code{ID} is a unique identifier for each individaul. It must contain at least one row per combination of individual and time. Multiple rows may be needed if an individual was measured more than once at the same timepoint. These multiple measurements inform the estimation of observation error. If multiple rows for the same combination of individual and time are given, then only the predictors from the first instance is used. If a size observation was missed for one combination of individual and time, then that row should have an \code{NA} in the size column, but must contian any covariates. There must be at least one non-missing size for each individual.
+##' @details \code{data} must at least the following columns: \code{size, t, t0}, and \code{ID}. 
+##' \code{size} is the size of an individual on the log scale. 
+##' \code{t} is the point in time when an observation was made. 
+##' \code{t} must be in discrete units (i.e. integers) with increments of 1. 
+##' \code{t0} is the time when an individual was born. 
+##' \code{ID} is a unique identifier for each individaul. 
+##' \code{data} must contain at least one row per combination of individual and time. Multiple rows may be needed if an individual was measured more than once at the same timepoint. These multiple measurements inform the estimation of observation error. If multiple rows for the same combination of individual and time are given, then only the predictors from the first instance is used. If a size observation was missed for one combination of individual and time, then that row should have an \code{NA} in the size column, but must contian any covariates. There must be at least one non-missing size for each individual.
+##' @export
+##' @import TMB
+##' @useDynLib growmod
 ##' @examples
 ##' true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, size=.6, "size:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
 ##' sg=simobs(true, nind=1000, ntime=20)
 ##' m1=growmod(~1, ~1, data=sg, REcohort=FALSE)
 ##' summary(m1)
 ##' 
-##' @export
-##' @import TMB
-##' @useDynLib growmod
 
 growmod=function(formulaX=~1, formulaM=~1, data, estobserr=FALSE, sigma_obs = 0.03554119, predfirstsize =NULL, DLL="growmod", silent=TRUE, selecting=FALSE, REtime=TRUE, REID=TRUE, REcohort=TRUE, REageID=FALSE,...)
 {
