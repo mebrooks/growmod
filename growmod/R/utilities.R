@@ -23,8 +23,9 @@ mintime=min(data$t)
 if(any(is.na(data$t0))){stop("Each individual must have a birth time (t0).")}
 
 indivdat=ddply(data, ~iID, summarize, t0=t0[1], T=max(t), ID=ID[1],
-					bad=any(!(t0[1]:max(t) %in% t)))
-if(any(indivdat$bad)){stop("Each individual must have a row of data for every timepoint from t0 (for that individual) to the last timepoint for that individual, even when size observations are missing. Those rows can have NA in the size column, but must contain any predictors needed for formulaX and formulaM. \n Check the following individuals: ", subset(indivdat, bad==TRUE)$ID)}
+					bad=any(!(t0[1]:max(t) %in% t)) | !any(!is.na(size))
+					)
+if(any(indivdat$bad)){stop("Each individual must have a row of data for every timepoint from t0 (for that individual) to the last timepoint for that individual, even when size observations are missing. Those rows can have NA in the size column, but must contain any predictors needed for formulaX and formulaM. Also, each individual must have at least one non-missing size. \n Check the following individuals: ", subset(indivdat, bad==TRUE)$ID)}
 
 #take care of repeated measures at the same time point
 noreps=ddply(data, ~iID+it, summarize, size=mean(size))
@@ -72,10 +73,10 @@ Lpin=list(size= noreps$size, #rep(0, length(Minit)),
 ##' @param formulaM a formula for the covariates that affect the autoregressive coefficient of the AR(1) model
 ##' @param data a data frame of observed sizes and covariates in long format. See details.
 ##' @param estobserr logical - should observation error 
-##' @param sigma_obs the standard deviation of the observation error with the same units as size (e.g. log kg). To be used in a \code{growmod} model when \code{estobserr=FALSE}.
-##' @param predfirstsize NULL if there are no predictors on first size, or a design matrix of predictors with one row per individau in the order as the individuals first apear in data
+##' @param sigma_obs the standard deviation of the observation error with the same units as size (e.g. log kg). Ignored if \code{estobserr=TRUE}.
+##' @param predfirstsize NULL if there are no predictors on first size, or a design matrix of predictors with one row per individual in the order as the individuals first apear in data
 ##' @param DLL the name of the compiled TMB/c++ file
-##' @param silent logical - Disable all tracing information?
+##' @param silent logical - Disable all tracing information in maximum likelihood estimation?
 ##' @param selecting logical - when true, save time by not estimating confidence intervals. Only return AIC and convergence.
 ##' @param REtime logical - estimate a random intercept for each time point
 ##' @param REID logical - estimate a random intercept for each individual
