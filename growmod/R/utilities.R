@@ -10,7 +10,6 @@
 organize_data=function(data, sigma_obs)
 {
 if(!all(c("size", "t", "t0", "ID") %in% names(data))){stop("data must contain size, t, t0, and ID.")}
-if(!min(data$t0)>=min(data$t)){stop("The minimum t0 must be >= to minimum t so that predictors are available from the beginning.")}
 
 #organize data
 data$fID=factor(data$ID)
@@ -21,11 +20,11 @@ obs=na.omit(data[,c("size", "iID", "it")])
 nind=length(unique(obs$iID))
 ntimes=length(unique(data$it))
 mintime=min(data$t)
+if(any(is.na(data$t0))){stop("Each individual must have a birth time (t0).")}
 
-indivdat=ddply(data, ~iID, summarize, t0=t0[1], T=max(t), 
+indivdat=ddply(data, ~iID, summarize, t0=t0[1], T=max(t), ID=ID[1],
 					bad=any(!(t0[1]:max(t) %in% t)))
-if(any(indivdat$bad)){stop("Each individual must have a row of data for every timepoint from t0 to max(t), even when size observations are missing. Those rows can have NA in the size column, but must contain any predictors needed for formulaX and formulaM.")}
-if(any(is.na(indivdat$t0))){stop("Each individual must have a birth time (t0).")}
+if(any(indivdat$bad)){stop("Each individual must have a row of data for every timepoint from t0 (for that individual) to the last timepoint for that individual, even when size observations are missing. Those rows can have NA in the size column, but must contain any predictors needed for formulaX and formulaM. \n Check the following individuals: ", subset(indivdat, bad==TRUE)$ID)}
 
 #take care of repeated measures at the same time point
 noreps=ddply(data, ~iID+it, summarize, size=mean(size))
