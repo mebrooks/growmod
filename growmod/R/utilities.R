@@ -29,7 +29,7 @@ if(any(indivdat$bad)){stop("Each individual must have a row of data for every ti
 
 #take care of repeated measures at the same time point
 noreps=ddply(data, ~iID+it, summarize, size=mean(size))
-preddat=join(noreps, data[,-grep("size", names(data))], match="first") 
+preddat=join(noreps, data[,-grep("size", names(data))], match="first", by=c('iID', 'it')) 
 noreps$size[is.na(noreps$size)]=mean(noreps$size, na.rm=TRUE)
 tmp= preddat[, c('it', 'iID')]#no rep sizes
 tmp$value=0:(nrow(tmp)-1)
@@ -101,7 +101,7 @@ Lpin=list(size= noreps$size, #rep(0, length(Minit)),
 ##' summary(m1)
 ##' 
 
-growmod=function(formulaX=~1, formulaM=~1, data, estobserr=FALSE, sigma_obs = 0.03554119, predfirstsize =NULL, DLL="growmod", silent=TRUE, selecting=FALSE, REtime=TRUE, REID=TRUE, REcohort=TRUE, REageID=FALSE,...)
+growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NULL, predfirstsize =NULL, DLL="growmod", silent=TRUE, selecting=FALSE, REtime=TRUE, REID=TRUE, REcohort=FALSE, REageID=FALSE,...)
 {
 	ogd=organize_data(data, sigma_obs)
 	Ldat= ogd$Ldat
@@ -144,11 +144,13 @@ growmod=function(formulaX=~1, formulaM=~1, data, estobserr=FALSE, sigma_obs = 0.
 	if(!estobserr)
 	{
 		map$log_sigma_obs=as.factor(NA)
-		if(is.null(Lpin$log_sigma_obs)){Lpin$log_sigma_obs=log(Ldat$sigma_obs)}
+		if(is.null(Ldat$sigma_obs)){stop("If you do not want growmod to estimate observation error, then you must give a value for sigma_obs.")}
+		if(is.null(Lpin$log_sigma_obs)){Lpin$log_sigma_obs=log(mean(Ldat$obs)/20)}#start at 5% error
 	}
 	if(estobserr)
 	{
-		Lpin$log_sigma_obs=0			
+		Lpin$log_sigma_obs=0		
+		Ldat$sigma_obs=0 #just in case it is NULL	
 	}
 	##################################################
 	#What to do about first size
@@ -315,7 +317,7 @@ extract_ID_dev=function(mod, data){
 ##' @param newdata a data frame containing a column for each of the covariates in the formulas usind for fitting \code{mod} and a column \code{size} which is the size in the previous time point.
 ##' @param exp logical - Should the predictions be exponentiated to put them back on a natural scale? See details.
 ##' @return predicted sizes
-##' @details It is assumed that size is measured on the log scale (e.g. log kg). Therefore when \code{exp=FALSE}, predictions are made on the log scale. When \code{exp=TRUE}, predictions are made using the formula \code{exp(m +0.5*v)} where \code{m} is the prediction on the log scale, and \code{v} is the sum of estimated variances.
+##' @details It is assumed that size is measured on the log scale (e.g. log kg). Therefore, when \code{exp=FALSE}, predictions are made on the log scale. When \code{exp=TRUE}, predictions are made using the formula \code{exp(m + 0.5*v)} where \code{m} is the prediction on the log scale, and \code{v} is the sum of estimated variances including random effects and process error.
 ##' @export
 predict.growmod=function(mod, newdata, exp=FALSE){
 
