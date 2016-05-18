@@ -45,7 +45,6 @@ Ldat=list(obs=obs$size , #logsize observed
 		time_size= preddat $it,
 		age_size=preddat$t-preddat$t0,
 		lookup= lookup,
-		sigma_obs=sigma_obs,
 		Predictors= preddat,
 		NAint=NAint
 	)
@@ -59,6 +58,7 @@ Lpin=list(size= noreps$size, #rep(0, length(Minit)),
 		indiv_growth_dev=rep(0, nind),
 		time_growth_dev=rep(0, ntimes),
 		log_sigma_proc=0,
+		log_sigma_obs=log(sigma_obs),
 		cohort_growth_dev=rep(0, ntimes),
 		scale_indiv_cor=0,
 		log_indiv_age_growth_sd=0,
@@ -101,7 +101,7 @@ Lpin=list(size= noreps$size, #rep(0, length(Minit)),
 ##' summary(m1)
 ##' 
 
-growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NULL, predfirstsize =NULL, DLL="growmod", silent=TRUE, selecting=FALSE, REtime=TRUE, REID=TRUE, REcohort=FALSE, REageID=FALSE,...)
+growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NA, predfirstsize =NULL, DLL="growmod", silent=TRUE, selecting=FALSE, REtime=TRUE, REID=TRUE, REcohort=FALSE, REageID=FALSE,...)
 {
 	ogd=organize_data(data, sigma_obs)
 	Ldat= ogd$Ldat
@@ -144,13 +144,11 @@ growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NUL
 	if(!estobserr)
 	{
 		map$log_sigma_obs=as.factor(NA)
-		if(is.null(Ldat$sigma_obs)){stop("If you do not want growmod to estimate observation error, then you must give a value for sigma_obs.")}
-		if(is.null(Lpin$log_sigma_obs)){Lpin$log_sigma_obs=log(mean(Ldat$obs)/20)}#start at 5% error
+		if(is.na(Lpin$log_sigma_obs)){stop("If you do not want growmod to estimate observation error, then you must give a value for sigma_obs.")}
 	}
 	if(estobserr)
 	{
-		Lpin$log_sigma_obs=0		
-		Ldat$sigma_obs=0 #just in case it is NULL	
+		Lpin$log_sigma_obs=log(mean(Ldat$obs)*0.1)#start at 10% error rate
 	}
 	##################################################
 	#What to do about first size
@@ -424,7 +422,7 @@ simobs=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL, recap=.5, s
 	dat2=do.call(rbind, sd2)	
 	dat2 $size=rnorm(n=nrow(dat2), mean=dat2$size, sd=sigma_obs) #observed sizes
 	
-	obs=join(dat2, dat[,-1], type="full")			
+	obs=join(dat2, dat[,-1], type="full", by=c('t', 'ID', 'age', 't0', 'T'))			
 	return(obs)
 }
 ##########################################
@@ -432,11 +430,13 @@ simobs=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL, recap=.5, s
 ##' @param full an object of type \code{growmod} that was fit using the \code{growmod()} function.
 ##' @param restricted an object of type \code{growmod} that was fit using the \code{growmod()} function with a subset of the covariates used for \code{full}
 ##' @export
-LRtest=function(full,restricted){
+LRtest=function(full,restricted)
+{
     statistic <- 2*(restricted$fit$objective - full$fit$objective)
     df <- length(full$fit$par) - length(restricted$fit$par)
     p.value <- 1-pchisq(statistic,df=df)
     data.frame(statistic,df,p.value)
 }
 ###########################################
+
 NAint=-999999
