@@ -148,7 +148,7 @@ growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NA,
 	}
 	if(estobserr)
 	{
-		Lpin$log_sigma_obs=log(mean(Ldat$obs)*0.1)#start at 10% error rate
+		Lpin$log_sigma_obs=log(mean(Ldat$obs)*0.05)#start at 5% error rate
 	}
 	##################################################
 	#What to do about first size
@@ -215,8 +215,8 @@ TMBAIC=function(opt, n=NULL, correction=TRUE)
 	if(correction & is.null(n)){stop("Sample size n needed to calculate AICc.")}
 	l=opt[["objective"]]
 	k=length(opt[["par"]])
-	if(correction){return(2*k - 2*l + 2*k*(k+1)/(n-k-1))}
-	return(2*k - 2*l)
+	if(correction){return(2*k + 2*l + 2*k*(k+1)/(n-k-1))}
+	return(2*k + 2*l)
 }
 ###########################################
 ##' Extract coefficients from a fitted model and give the coefficients more informative names based on the specified formulas.
