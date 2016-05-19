@@ -20,7 +20,6 @@ Type objective_function<Type>::operator() ()
 	
 	//Define parameters to be estimated
 	PARAMETER_VECTOR(size); //latent size
-//	PARAMETER(size0_mu);
 	PARAMETER_VECTOR(beta); //coeffs for growth model except previous size
 	PARAMETER_VECTOR(eta); //coeffs for terms interacting with previous size
 	PARAMETER_VECTOR(theta); //coeffs for effects on first size
@@ -66,11 +65,11 @@ Type objective_function<Type>::operator() ()
 				std::cerr << "\n Accessing an invalid (individual, time) combination at ("<<i<<", "<<t+1<<
 					"). \n Each individual must have a row of data for every timepoint from t0 to T, even when observations are missing.";
 			//predict the next size based on the linear mixed model
-			pred=Meta(lookup(i,t+1))*size(lookup(i,t)) +
-				Xbeta(lookup(i,t+1)) + 
+			pred=Meta(lookup(i,t))*size(lookup(i,t)) +
+				Xbeta(lookup(i,t)) + 
 				indiv_growth_dev(i) + 
-				indiv_age_growth_dev(i)*age_size(lookup(i,t+1)) + 
-				time_growth_dev(t+1) +
+				indiv_age_growth_dev(i)*age_size(lookup(i,t)) + 
+				time_growth_dev(t) +
 				cohort_growth_dev(t0(i));
 				
 			//add the process to the joint negative log-likelihood
