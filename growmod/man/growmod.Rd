@@ -4,10 +4,10 @@
 \alias{growmod}
 \title{A function for fitting an autoregressive model including fixed effect covariates and random effects.}
 \usage{
-growmod(formulaX = ~1, formulaM = ~1, data, estobserr = FALSE,
-  sigma_obs = 0.03554119, predfirstsize = NULL, DLL = "growmod",
+growmod(formulaX = ~1, formulaM = ~1, data, estobserr = TRUE,
+  sigma_obs = NA, formulafirstsize = NULL, DLL = "growmod",
   silent = TRUE, selecting = FALSE, REtime = TRUE, REID = TRUE,
-  REcohort = TRUE, REageID = FALSE, ...)
+  REcohort = FALSE, REageID = FALSE, ...)
 }
 \arguments{
 \item{formulaX}{a formula for the covariates that affect the intercept of the AR(1) model}
@@ -18,13 +18,13 @@ growmod(formulaX = ~1, formulaM = ~1, data, estobserr = FALSE,
 
 \item{estobserr}{logical - should observation error}
 
-\item{sigma_obs}{the standard deviation of the observation error with the same units as size (e.g. log kg). To be used in a \code{growmod} model when \code{estobserr=FALSE}.}
+\item{sigma_obs}{the standard deviation of the observation error with the same units as size (e.g. log kg). Ignored if \code{estobserr=TRUE}.}
 
-\item{predfirstsize}{NULL if there are no predictors on first size, or a design matrix of predictors with one row per individau in the order as the individuals first apear in data}
+\item{formulafirstsize}{NULL if there are no predictors on first size, or a formula for the predictors of \code{size} at \code{t0}. The predictors must be non-NA in the rows of the data where t==t0.}
 
 \item{DLL}{the name of the compiled TMB/c++ file}
 
-\item{silent}{logical - Disable all tracing information?}
+\item{silent}{logical - Disable all tracing information in maximum likelihood estimation?}
 
 \item{selecting}{logical - when true, save time by not estimating confidence intervals. Only return AIC and convergence.}
 

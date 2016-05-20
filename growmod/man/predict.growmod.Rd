@@ -20,6 +20,6 @@ predicted sizes
 Make predictions of size at the next point in time.
 }
 \details{
-It is assumed that size is measured on the log scale (e.g. log kg). Therefore when \code{exp=FALSE}, predictions are made on the log scale. When \code{exp=TRUE}, predictions are made using the formula \code{exp(m +0.5*v)} where \code{m} is the prediction on the log scale, and \code{v} is the sum of estimated variances.
+It is assumed that size is measured on the log scale (e.g. log kg). Therefore, when \code{exp=FALSE}, predictions are made on the log scale. When \code{exp=TRUE}, predictions are made using the formula \code{exp(m + 0.5*v)} where \code{m} is the prediction on the log scale, and \code{v} is the sum of estimated variances including random effects and process error.
 }
 

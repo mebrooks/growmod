@@ -388,7 +388,6 @@ simgrow=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL){
 		}
 		dat=rbind(dat, temp)
 	}	
-	
 	return(dat)
 }	
 ###########################################
@@ -417,7 +416,7 @@ simobs=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL, recap=.5, s
 	sdat=split(dat, dat$ID)
 	sd2=lapply(sdat, function(x){
 		n=nrow(x)
-		x[sample(1:n, max(round(n* recap),1)),]
+		x[sample(1:n, max(round(n* recap),1), replace=TRUE),]
 	})
 	dat2=do.call(rbind, sd2)	
 	dat2 $size=rnorm(n=nrow(dat2), mean=dat2$size, sd=sigma_obs) #observed sizes
