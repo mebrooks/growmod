@@ -90,12 +90,12 @@ Lpin=list(size= noreps$size, #rep(0, length(Minit)),
 ##' \code{t} must be in discrete units (i.e. integers) with increments of 1. 
 ##' \code{t0} is the time when an individual was born. 
 ##' \code{ID} is a unique identifier for each individaul. 
-##' \code{data} must contain at least one row per combination of individual and time. Multiple rows may be needed if an individual was measured more than once at the same timepoint. These multiple measurements inform the estimation of observation error. If multiple rows for the same combination of individual and time are given, then only the predictors from the first instance is used. If a size observation was missed for one combination of individual and time, then that row should have an \code{NA} in the size column, but must contian any covariates. There must be at least one non-missing size for each individual.
+##' \code{data} must contain at least one row per combination of individual and time. Multiple rows may exist if an individual was measured more than once at the same timepoint; these multiple measurements are very informative for the estimation of observation error. If multiple rows for the same combination of individual and time are given, then only the covariates from the first instance is used. If a size observation was missed for one combination of individual and time, then that row should have an \code{NA} in the size column, but must contian any covariates. There must be at least one non-missing size for each individual. A call of \code{growmod(~x, ~1, dat)} is analogous to \code{lmer(size ~ sizeprevious + x + (1|ID) + (1|t), dat)}. 
 ##' @export
 ##' @import TMB
 ##' @useDynLib growmod
 ##' @examples
-##' true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, size=.6, "size:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
+##' true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, prevsize=.6, "prevsize:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
 ##' sg=simobs(true, nind=1000, ntime=20)
 ##' m1=growmod(~1, ~1, data=sg, REcohort=FALSE)
 ##' summary(m1)
@@ -234,10 +234,10 @@ extract_coefs=function(mod, CV=FALSE, size0=FALSE)
 	take0=c(take0, which(nf=="eta"))
 	if(size0) {take0=c(take0, which(nf=="theta"))}
 	nf[nf=="beta"]=mod$Xnames
-	nf[nf=="eta"]=paste0("size:",mod$Mnames)
+	nf[nf=="eta"]=paste0("prevsize:",mod$Mnames)
 	nf[nf=="theta"]=paste0("size0 model ",mod$Bnames)
 
-	nf[nf=="size:(Intercept)"]="size"
+	nf[nf=="prevsize:(Intercept)"]="prevsize"
 	rownames(cf)=nf
 	cf2=cf[take0, ]
 
@@ -309,10 +309,10 @@ extract_ID_dev=function(mod, data){
 	return(dat)
 }	
 ###########################################
-##' Make predictions of size at the next point in time.
+##' Make predictions of size at the next point in time using fixed effects only.
 ##'
 ##' @param mod an object of type \code{growmod} that was fit to \code{data} using the \code{growmod()} function. See \code{?growmod} for details.
-##' @param newdata a data frame containing a column for each of the covariates in the formulas usind for fitting \code{mod} and a column \code{size} which is the size in the previous time point.
+##' @param newdata a data frame containing a column for each of the covariates in the formulas used for fitting \code{mod} and a column \code{prevsize} which is the size in the previous time point\code{t-1} (i.e. to predict \code{size} at time \code{t} newdata must contain covariates for changes in size from \code{t-1} to time \code{t}).
 ##' @param exp logical - Should the predictions be exponentiated to put them back on a natural scale? See details.
 ##' @return predicted sizes
 ##' @details It is assumed that size is measured on the log scale (e.g. log kg). Therefore, when \code{exp=FALSE}, predictions are made on the log scale. When \code{exp=TRUE}, predictions are made using the formula \code{exp(m + 0.5*v)} where \code{m} is the prediction on the log scale, and \code{v} is the sum of estimated variances including random effects and process error.
@@ -321,7 +321,7 @@ predict.growmod=function(mod, newdata, exp=FALSE){
 
 	X=model.matrix(mod$formulaX, newdata)
 	M=model.matrix(mod$formulaM, newdata)
-	if(!exp){return(X%*% mod$parList$beta + M%*% mod$parList$eta*newdata$size)}
+	if(!exp){return(X%*% mod$parList$beta + M%*% mod$parList$eta*newdata$prevsize)}
 	
 	r=summary(mod$sdr, "report")
 	if("indiv_age_growth_sd" %in%rownames(r))
@@ -341,7 +341,7 @@ predict.growmod=function(mod, newdata, exp=FALSE){
 ##' @param lifespans a set of intergers to be resampled from. It should reflect the frequency of each lifespan.
 ##' @export
 ##' @examples
-##' true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, size=.6, "size:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
+##' true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, prevsize=.6, "prevsize:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
 ##' sg=simgrow(true, nind=10, ntime=20)
 simgrow=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL){
 
@@ -378,11 +378,11 @@ simgrow=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL){
 			for(y in b:(d-1))#process model
 			{
 				temp$size[y-b+2] = rnorm(1, pars['(Intercept)']+idev[i,1] +
-									(pars['age']+idev[i,2])*temp$age[y-b+1] +
-									pars['I(age^2)']*temp$age[y-b+1]^2 + 
-									(pars['size'] + pars['size:age']*temp$age[y-b+1])*temp$size[y-b+1] +
+									(pars['age']+idev[i,2])*temp$age[y-b+2] +
+									pars['I(age^2)']*temp$age[y-b+2]^2 + 
+									(pars['prevsize'] + pars['prevsize:age']*temp$age[y-b+2])*temp$size[y-b+1] +
 									time_growth_dev[y], 
-									pars['sigma_proc'])		
+									sd= pars['sigma_proc'])		
 				count=count+1
 			}
 		}
@@ -393,7 +393,7 @@ simgrow=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL){
 ###########################################
 ##' Simulate observed sizes.
 ##'
-##' @param pars a numeric vector contianing the following named terms representing regression coefficients: \code{'(Intercept)', 'age',  'I(age^2)', 'size', 'size:age', 'sigma_proc', 'time_growth_sd', 'indiv_growth_sd', 'indiv_age_growth_sd', 'indiv_cor', 'size0_mu', 'size0_sd'} 
+##' @param pars a numeric vector contianing the following named terms representing regression coefficients: \code{'(Intercept)', 'age',  'I(age^2)', 'prevsize', 'prevsize:age', 'sigma_proc', 'time_growth_sd', 'indiv_growth_sd', 'indiv_age_growth_sd', 'indiv_cor', 'size0_mu', 'size0_sd'} 
 ##' @param nind the number of individuals to simulate
 ##' @param ntime the number of times spanned by the dataset
 ##' @param maxage the maximum age that all individuals reach (not used if lifespans is specified)
@@ -408,7 +408,7 @@ simgrow=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL){
 ##' @examples
 ##' true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, size=.6, "size:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
 ##' sg=simobs(true, nind=10, ntime=20)
-simobs=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL, recap=.5, sigma_obs=0.03554119)
+simobs=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL, recap=.5, sigma_obs=0.05)
 {
 	dat= simgrow(pars=pars, nind=nind, ntime=ntime, maxage= maxage, lifespans= lifespans)
 
