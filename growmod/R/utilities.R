@@ -72,8 +72,8 @@ Lpin=list(size= noreps$size, #rep(0, length(Minit)),
 ##' @param formulaX a formula for the covariates that affect the intercept of the AR(1) model
 ##' @param formulaM a formula for the covariates that affect the autoregressive coefficient of the AR(1) model
 ##' @param data a data frame of observed sizes and covariates in long format. See details.
-##' @param estobserr logical - should observation error 
-##' @param sigma_obs the standard deviation of the observation error with the same units as size (e.g. log kg). Ignored if \code{estobserr=TRUE}.
+##' @param estobserr logical - should observation error be estimated? If \code{FALSE}, then you must provide an estimate in \code{sigma_obs}.
+##' @param sigma_obs the standard deviation of the observation error (i.e. measurement error) with the same units as size (e.g. log kg). Ignored if \code{estobserr=TRUE}.
 ##' @param predfirstsize NULL if there are no predictors on first size, or a design matrix of predictors with one row per individual in the order as the individuals first apear in data
 ##' @param DLL the name of the compiled TMB/c++ file
 ##' @param silent logical - Disable all tracing information in maximum likelihood estimation?
@@ -325,16 +325,16 @@ predict.growmod=function(mod, newdata, exp=FALSE){
 	
 	r=summary(mod$sdr, "report")
 	if("indiv_age_growth_sd" %in%rownames(r))
-		stop("pred_expsize is only implemented for models without random slopes")
+		stop("predict.growmod is only implemented for models without random slopes")
 	sumsigmasq=sum(r[grep("growth_sd",rownames(r)) , "Estimate"]^2)+r["sigma_proc","Estimate"]^2
-	return(exp(X%*% mod$parList$beta + M%*% mod$parList$eta*newdata$size + 0.5*sumsigmasq))
+	return(exp(X%*% mod$parList$beta + M%*% mod$parList$eta*newdata$prevsize + 0.5*sumsigmasq))
 
 }	
 ###########################################
 ##' Simulate growth
 ##'
 ##' @details Covariates other than age are not implemented. Birth times are uniformly distributed across the time series. Observations of an individual stop either when it reaches the end of its lifespan, or when time reaches \code{ntime}. 
-##' @param pars a numeric vector contianing the following named terms representing regression coefficients: \code{'(Intercept)', 'age',  'I(age^2)', 'size', 'size:age', 'sigma_proc', 'time_growth_sd', 'indiv_growth_sd', 'indiv_age_growth_sd', 'indiv_cor', 'size0_mu', 'size0_sd'} 
+##' @param pars a numeric vector contianing the following named terms representing regression coefficients: \code{'(Intercept)', 'age',  'I(age^2)', 'prevsize', 'prevsize:age', 'sigma_proc', 'time_growth_sd', 'indiv_growth_sd', 'indiv_age_growth_sd', 'indiv_cor', 'size0_mu', 'size0_sd'} 
 ##' @param nind the number of individuals to simulate
 ##' @param ntime the number of times spanned bt the dataset
 ##' @param maxage the maximum age that all individuals reach (not used if lifespans is specified)
@@ -401,7 +401,7 @@ simgrow=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL){
 ##' @param recap the probability of captuing an individual in any time when it was alive.
 ##' @param sigma_obs the standard deviation of the observation error with the same units as size (e.g. log kg).
 ##'
-##' @details Covariates other than age are not implemented yet. This function calls \code{simgrow()}.
+##' @details Covariates other than age are not implemented yet. This function calls \code{simgrow()}. It assumes that there are no reapeated captures of the same individuaal at the same timepoint (less than ideal for estimating sigma_obs).
 ##'
 ##' @return A data frame of the format needed for input to \code{growmod}. Size observations that are missing due to imperfect recapture are entered as NA because rows of predictors are still needed for those combinations of individual and time. 
 ##' @export
@@ -416,12 +416,12 @@ simobs=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL, recap=.5, s
 	sdat=split(dat, dat$ID)
 	sd2=lapply(sdat, function(x){
 		n=nrow(x)
-		x[sample(1:n, max(round(n* recap),1), replace=TRUE),]
+		x[sample(1:n, max(round(n* recap),1)),]#assumes no repeated capture in same year
 	})
 	dat2=do.call(rbind, sd2)	
 	dat2 $size=rnorm(n=nrow(dat2), mean=dat2$size, sd=sigma_obs) #observed sizes
 	
-	obs=join(dat2, dat[,-1], type="full", by=c('t', 'ID', 'age', 't0', 'T'))			
+	obs=join(dat[,-1], dat2, by=c('t', 'ID', 'age', 't0', 'T'))			
 	return(obs)
 }
 ##########################################

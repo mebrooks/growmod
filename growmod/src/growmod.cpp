@@ -63,8 +63,7 @@ Type objective_function<Type>::operator() ()
 		for(int t=t0(i); t<T(i); t++)//for each time of individual i's life
 		{
 			if(lookup(i,t+1)==NAint)
-				std::cerr << "\n Accessing an invalid (individual, time) combination at ("<<i<<", "<<t+1<<
-					"). \n Each individual must have a row of data for every timepoint from t0 to T, even when observations are missing.";
+				std::cerr << "\n Accessing an invalid (individual, time) combination at ("<<i<<", "<<t+1<<"). There was a problem with data organization.";
 			//predict the next size based on the linear mixed model
 			pred=Meta(lookup(i,t+1))*size(lookup(i,t)) +
 				Xbeta(lookup(i,t+1)) + 

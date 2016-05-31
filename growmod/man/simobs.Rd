@@ -5,10 +5,10 @@
 \title{Simulate observed sizes.}
 \usage{
 simobs(pars, nind = 150, ntime = 29, maxage = 12, lifespans = NULL,
-  recap = 0.5, sigma_obs = 0.03554119)
+  recap = 0.5, sigma_obs = 0.05)
 }
 \arguments{
-\item{pars}{a numeric vector contianing the following named terms representing regression coefficients: \code{'(Intercept)', 'age',  'I(age^2)', 'size', 'size:age', 'sigma_proc', 'time_growth_sd', 'indiv_growth_sd', 'indiv_age_growth_sd', 'indiv_cor', 'size0_mu', 'size0_sd'}}
+\item{pars}{a numeric vector contianing the following named terms representing regression coefficients: \code{'(Intercept)', 'age',  'I(age^2)', 'prevsize', 'prevsize:age', 'sigma_proc', 'time_growth_sd', 'indiv_growth_sd', 'indiv_age_growth_sd', 'indiv_cor', 'size0_mu', 'size0_sd'}}
 
 \item{nind}{the number of individuals to simulate}
 
@@ -29,7 +29,7 @@ A data frame of the format needed for input to \code{growmod}. Size observations
 Simulate observed sizes.
 }
 \details{
-Covariates other than age are not implemented yet. This function calls \code{simgrow()}.
+Covariates other than age are not implemented yet. This function calls \code{simgrow()}. It assumes that there are no reapeated captures of the same individuaal at the same timepoint (less than ideal for estimating sigma_obs).
 }
 \examples{
 true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, size=.6, "size:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)

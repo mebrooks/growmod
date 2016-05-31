@@ -2,14 +2,14 @@
 % Please edit documentation in R/utilities.R
 \name{predict.growmod}
 \alias{predict.growmod}
-\title{Make predictions of size at the next point in time.}
+\title{Make predictions of size at the next point in time using fixed effects only.}
 \usage{
 \method{predict}{growmod}(mod, newdata, exp = FALSE)
 }
 \arguments{
 \item{mod}{an object of type \code{growmod} that was fit to \code{data} using the \code{growmod()} function. See \code{?growmod} for details.}
 
-\item{newdata}{a data frame containing a column for each of the covariates in the formulas usind for fitting \code{mod} and a column \code{size} which is the size in the previous time point.}
+\item{newdata}{a data frame containing a column for each of the covariates in the formulas used for fitting \code{mod} and a column \code{prevsize} which is the size in the previous time point\code{t-1} (i.e. to predict \code{size} at time \code{t} newdata must contain covariates for changes in size from \code{t-1} to time \code{t}).}
 
 \item{exp}{logical - Should the predictions be exponentiated to put them back on a natural scale? See details.}
 }
@@ -17,7 +17,7 @@
 predicted sizes
 }
 \description{
-Make predictions of size at the next point in time.
+Make predictions of size at the next point in time using fixed effects only.
 }
 \details{
 It is assumed that size is measured on the log scale (e.g. log kg). Therefore, when \code{exp=FALSE}, predictions are made on the log scale. When \code{exp=TRUE}, predictions are made using the formula \code{exp(m + 0.5*v)} where \code{m} is the prediction on the log scale, and \code{v} is the sum of estimated variances including random effects and process error.

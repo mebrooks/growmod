@@ -11,3 +11,4 @@ License: What license is it under?
 LazyData: true
 LinkingTo: TMB, RcppEigen
 RoxygenNote: 5.0.1
+VignetteBuilder: knitr

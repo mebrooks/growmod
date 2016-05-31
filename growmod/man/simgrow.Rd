@@ -7,7 +7,7 @@
 simgrow(pars, nind = 150, ntime = 29, maxage = 12, lifespans = NULL)
 }
 \arguments{
-\item{pars}{a numeric vector contianing the following named terms representing regression coefficients: \code{'(Intercept)', 'age',  'I(age^2)', 'size', 'size:age', 'sigma_proc', 'time_growth_sd', 'indiv_growth_sd', 'indiv_age_growth_sd', 'indiv_cor', 'size0_mu', 'size0_sd'}}
+\item{pars}{a numeric vector contianing the following named terms representing regression coefficients: \code{'(Intercept)', 'age',  'I(age^2)', 'prevsize', 'prevsize:age', 'sigma_proc', 'time_growth_sd', 'indiv_growth_sd', 'indiv_age_growth_sd', 'indiv_cor', 'size0_mu', 'size0_sd'}}
 
 \item{nind}{the number of individuals to simulate}
 
@@ -24,7 +24,7 @@ Simulate growth
 Covariates other than age are not implemented. Birth times are uniformly distributed across the time series. Observations of an individual stop either when it reaches the end of its lifespan, or when time reaches \code{ntime}.
 }
 \examples{
-true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, size=.6, "size:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
+true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, prevsize=.6, "prevsize:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
 sg=simgrow(true, nind=10, ntime=20)
 }
 

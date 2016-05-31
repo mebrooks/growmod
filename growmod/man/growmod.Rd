@@ -5,9 +5,9 @@
 \title{A function for fitting an autoregressive model including fixed effect covariates and random effects.}
 \usage{
 growmod(formulaX = ~1, formulaM = ~1, data, estobserr = TRUE,
-  sigma_obs = NA, formulafirstsize = NULL, DLL = "growmod",
-  silent = TRUE, selecting = FALSE, REtime = TRUE, REID = TRUE,
-  REcohort = FALSE, REageID = FALSE, ...)
+  sigma_obs = NA, predfirstsize = NULL, DLL = "growmod", silent = TRUE,
+  selecting = FALSE, REtime = TRUE, REID = TRUE, REcohort = FALSE,
+  REageID = FALSE, ...)
 }
 \arguments{
 \item{formulaX}{a formula for the covariates that affect the intercept of the AR(1) model}
@@ -16,11 +16,11 @@ growmod(formulaX = ~1, formulaM = ~1, data, estobserr = TRUE,
 
 \item{data}{a data frame of observed sizes and covariates in long format. See details.}
 
-\item{estobserr}{logical - should observation error}
+\item{estobserr}{logical - should observation error be estimated? If \code{FALSE}, then you must provide an estimate in \code{sigma_obs}.}
 
-\item{sigma_obs}{the standard deviation of the observation error with the same units as size (e.g. log kg). Ignored if \code{estobserr=TRUE}.}
+\item{sigma_obs}{the standard deviation of the observation error (i.e. measurement error) with the same units as size (e.g. log kg). Ignored if \code{estobserr=TRUE}.}
 
-\item{formulafirstsize}{NULL if there are no predictors on first size, or a formula for the predictors of \code{size} at \code{t0}. The predictors must be non-NA in the rows of the data where t==t0.}
+\item{predfirstsize}{NULL if there are no predictors on first size, or a design matrix of predictors with one row per individual in the order as the individuals first apear in data}
 
 \item{DLL}{the name of the compiled TMB/c++ file}
 
@@ -49,10 +49,10 @@ A function for fitting an autoregressive model including fixed effect covariates
 \code{t} must be in discrete units (i.e. integers) with increments of 1. 
 \code{t0} is the time when an individual was born. 
 \code{ID} is a unique identifier for each individaul. 
-\code{data} must contain at least one row per combination of individual and time. Multiple rows may be needed if an individual was measured more than once at the same timepoint. These multiple measurements inform the estimation of observation error. If multiple rows for the same combination of individual and time are given, then only the predictors from the first instance is used. If a size observation was missed for one combination of individual and time, then that row should have an \code{NA} in the size column, but must contian any covariates. There must be at least one non-missing size for each individual.
+\code{data} must contain at least one row per combination of individual and time. Multiple rows may exist if an individual was measured more than once at the same timepoint; these multiple measurements are very informative for the estimation of observation error. If multiple rows for the same combination of individual and time are given, then only the covariates from the first instance is used. If a size observation was missed for one combination of individual and time, then that row should have an \code{NA} in the size column, but must contian any covariates. There must be at least one non-missing size for each individual. A call of \code{growmod(~x, ~1, dat)} is analogous to \code{lmer(size ~ sizeprevious + x + (1|ID) + (1|t), dat)}.
 }
 \examples{
-true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, size=.6, "size:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
+true=c("(Intercept)"=1, age=0,  "I(age^2)"=0, prevsize=.6, "prevsize:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=1)
 sg=simobs(true, nind=1000, ntime=20)
 m1=growmod(~1, ~1, data=sg, REcohort=FALSE)
 summary(m1)
