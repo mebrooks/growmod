@@ -74,7 +74,7 @@ Lpin=list(size= noreps$size, #rep(0, length(Minit)),
 ##' @param data a data frame of observed sizes and covariates in long format. See details.
 ##' @param estobserr logical - should observation error be estimated? If \code{FALSE}, then you must provide an estimate in \code{sigma_obs}.
 ##' @param sigma_obs the standard deviation of the observation error (i.e. measurement error) with the same units as size (e.g. log kg). Ignored if \code{estobserr=TRUE}.
-##' @param predfirstsize NULL if there are no predictors on first size, or a design matrix of predictors with one row per individual in the order as the individuals first apear in data
+##' @param formulafirstsize NULL if there are no predictors on first size, or a formula
 ##' @param DLL the name of the compiled TMB/c++ file
 ##' @param silent logical - Disable all tracing information in maximum likelihood estimation?
 ##' @param selecting logical - when true, save time by not estimating confidence intervals. Only return AIC and convergence.
@@ -101,7 +101,7 @@ Lpin=list(size= noreps$size, #rep(0, length(Minit)),
 ##' summary(m1)
 ##' 
 
-growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NA, predfirstsize =NULL, DLL="growmod", silent=TRUE, selecting=FALSE, REtime=TRUE, REID=TRUE, REcohort=FALSE, REageID=FALSE,...)
+growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NA, formulafirstsize =NULL, DLL="growmod", silent=TRUE, selecting=FALSE, REtime=TRUE, REID=TRUE, REcohort=FALSE, REageID=FALSE,...)
 {
 	ogd=organize_data(data, sigma_obs)
 	Ldat= ogd$Ldat
@@ -152,16 +152,17 @@ growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NA,
 	}
 	##################################################
 	#What to do about first size
-	if(is.null(predfirstsize))
+	if(is.null(formulafirstsize))
 	{
 		Ldat$B=matrix(1, nrow=length(Ldat$t0), ncol=1)#just using t0 to get length right
 		colnames(Ldat$B)="size0_mu"
 		Lpin$theta=1
 	}	
-	if(!is.null(predfirstsize))
+	if(!is.null(formulafirstsize))
 	{
-		Ldat$B=predfirstsize
-		Lpin$theta=rep(0, ncol(predfirstsize))
+		birthdat=subset(Ldat$Predictors, t==t0)
+		Ldat$B=model.matrix(formulafirstsize, birthdat)
+		Lpin$theta=rep(0, ncol(Ldat$B))
 	}
 	##################################################
 	#TMB fit
