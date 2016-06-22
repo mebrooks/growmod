@@ -291,7 +291,8 @@ extract_pred=function(mod, data){
 	rr=summary(mod$sdr, "random")
 	nr=rownames(rr)
 	size=rr[nr=="size",]
-	pred=data.frame(est=size[,1], se=size[,2], age=od$Ldat$age, ID=d$Ldat$Predictors$ID, lamb=od$Ldat$Predictors$lamb, wnao=od$Ldat$Predictors$wnao, pop=od$Ldat$Predictors$prevpop)
+#	pred=cbind(od$Ldat$Predictors, size)
+	pred=cbind(od$Ldat$Predictors, size.est=size[,'Estimate'])
 	return(pred)
 }	
 ###########################################
