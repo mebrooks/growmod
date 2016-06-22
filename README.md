@@ -10,6 +10,6 @@ This package is part of a manuscript in preparation for publication.
 ## Installation
 To install `growmod`, first install `TMB` from CRAN, then install `growmod` via
 ```
-devtools::install_github("mebrooks/growmod/growmod")
+devtools::install_github("mebrooks/growmod/growmod", build_vignettes = TRUE)
 ```
 (you may need to install the `devtools` package, compiler tools, and other dependencies first).
