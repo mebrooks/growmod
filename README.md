@@ -15,3 +15,4 @@ You may need to install the `devtools` package, compiler tools, and other depend
 
 ##Getting started
 See `vignette("growmod")` for an example.
+Before publishing results from models fit with `growmod`, we recommend that you check for potential bias using simulations as described in `vignette("sim_growmod")`.
