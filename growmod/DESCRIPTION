@@ -1,9 +1,10 @@
 Package: growmod
 Title: Fit autoregressive state-space models using maximum marginal likelihood
-Version: 0.0.0.1
+Version: 0.0.1
+Date: 2016-7-7
 Authors@R: person("Mollie","Brooks", role=c("aut","cre"),
        email="mollieebrooks@gmail.com")
-Description: This package fits growth models to capture-recapture data of individual sizes. Growth from one time to the next is modeled as a Markov process. Covariates such as environmental variables or individual variables can affect both the intercept and autoregressive parts of the model. Models can include random effects of individual, time, and birth cohort. Time must be in discrete steps. Observations of individual sizes can be missing, but covariates cannot be missing. Individual could represent an individual organism, population, or other unit of replication. Estimation is done in a state-space framework using maximum marginal likelihood estimation via Template Model Builder.
+Description: Fit growth models to capture-recapture data of individual sizes. Growth from one time to the next is modeled as a Markov process. Covariates such as environmental variables or individual variables can affect both the intercept and autoregressive parts of the model. Models can include random effects of individual, time, and birth cohort. Time must be in discrete steps. Observations of individual sizes can be missing, but covariates cannot be missing. Individual could represent an individual organism, population, or other unit of replication. Estimation is done in a state-space framework using maximum marginal likelihood estimation via Template Model Builder.
 Depends:
     TMB,
     plyr

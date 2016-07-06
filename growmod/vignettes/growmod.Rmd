@@ -5,11 +5,12 @@ author: "Mollie Brooks"
 date: "16 March 2016"
 output: pdf_document
 ---
+#Basic example
 ```{r}
 library(growmod)
 library(ggplot2)
 ```
-
+##Simulate
 Simulate data and graph it to get an idea of the general pattern.
 ```{r, tidy=TRUE, warning=FALSE, message=FALSE}
 t1=c("(Intercept)"=1, age=.15,  "I(age^2)"=-.01, prevsize=.7, "prevsize:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=.5)
@@ -28,7 +29,7 @@ m4=growmod(~age+I(age^2), ~age, data=sg)
 m5=growmod(~age, ~age, data=sg)
 ```
 
-#Model Selection
+##Model Selection
 
 Now do model selection using either AIC across all models or LRT for pairs of nested models. The AIC value is corrected for small sample sizes.
 ```{r}
@@ -53,14 +54,29 @@ t1
 ```
 The values are pretty close. So that's good.
 
-#Residuals
+##Residuals
 
-We can use the `predict` function to make predictions of the next size. These only include the fixed effects. 
+We can use the `predict` function to make predictions of the next size. These only include the fixed effects. If your model includes a random effect of individual and these residuals show a downward bias with age, it indicates that only higher quality individuals survive to old age.
 ```{r, message=FALSE}
 dat2=ddply(organize_data(sg, sigma_obs = 0)$Ldat$Predictors, ~ID, mutate,
 	prevsize= size[match(age, age+1)]
 )
 dat2$pred=predict(m3, dat2)
 dat2$residuals=dat2$pred-dat2$size
-ggplot(dat2, aes(age, residuals))+geom_point()+geom_smooth() + theme_bw()
+ggplot(dat2, aes(age, residuals))+geom_point(alpha=.1)+geom_smooth() + theme_bw()
+```
+
+##Interpolate
+```{r, message=FALSE}
+dat3=interpolate(m3, dat2)
+ggplot(dat3, aes(size, size.interpolated))+theme_bw()+
+    geom_abline(intercept=0, slope=1)+ 
+    geom_point(alpha=.5)+geom_smooth()
+```
+
+Unlike predictions which only include the fixed effects, the interpolated values include the influence of process error and random effects.
+```{r, message=FALSE, echo=FALSE}
+ggplot(dat3, aes(size.interpolated, pred))+theme_bw()+
+    geom_abline(intercept=0, slope=1)+ 
+    geom_point(alpha=.1)+geom_smooth()
 ```
