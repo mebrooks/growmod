@@ -1,0 +1,66 @@
+%\VignetteEngine{knitr::knitr}
+---
+title: 'growmod package example'
+author: "Mollie Brooks"
+date: "16 March 2016"
+output: pdf_document
+---
+```{r}
+library(growmod)
+library(ggplot2)
+```
+
+Simulate data and graph it to get an idea of the general pattern.
+```{r, tidy=TRUE, warning=FALSE, message=FALSE}
+t1=c("(Intercept)"=1, age=.15,  "I(age^2)"=-.01, prevsize=.7, "prevsize:age"=0, sigma_proc=.01, time_growth_sd=.1, indiv_growth_sd=.1, indiv_age_growth_sd=0, indiv_cor=0, size0_mu=2.5, size0_sd=.5)
+
+set.seed(1111)
+sg=simobs(t1, nind=500, ntime=20, sigma_obs=.01, recap=.4)
+ggplot(sg, aes(age, size)) + geom_point(alpha=.05) + geom_smooth() + theme_bw()
+```
+
+Fit some models of varying complexity.
+```{r}
+m1=growmod(~1, ~1, data=sg)
+m2=growmod(~age, ~1, data=sg)
+m3=growmod(~age+I(age^2), ~1, data=sg)
+m4=growmod(~age+I(age^2), ~age, data=sg)
+m5=growmod(~age, ~age, data=sg)
+```
+
+#Model Selection
+
+Now do model selection using either AIC across all models or LRT for pairs of nested models. The AIC value is corrected for small sample sizes.
+```{r}
+m1$AIC
+m2$AIC
+m3$AIC
+m4$AIC
+m5$AIC
+LRtest(m2,m1)
+LRtest(m3,m2)
+LRtest(m4,m3)
+LRtest(m4,m5)
+```
+FIXME: In the future I need to make the models compatible with `AIC` and `AICtab` functions.
+
+Model selection results tell us that `m3` is the best. That's good because it's the form of the true model we used to simulate the data. 
+
+Let's compare the estimates to the true parameter values.
+```{r}
+summary(m3)
+t1
+```
+The values are pretty close. So that's good.
+
+#Residuals
+
+We can use the `predict` function to make predictions of the next size. These only include the fixed effects. 
+```{r, message=FALSE}
+dat2=ddply(organize_data(sg, sigma_obs = 0)$Ldat$Predictors, ~ID, mutate,
+	prevsize= size[match(age, age+1)]
+)
+dat2$pred=predict(m3, dat2)
+dat2$residuals=dat2$pred-dat2$size
+ggplot(dat2, aes(age, residuals))+geom_point()+geom_smooth() + theme_bw()
+```

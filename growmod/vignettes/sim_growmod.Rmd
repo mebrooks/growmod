@@ -1,0 +1,144 @@
+%\VignetteEngine{knitr::knitr}
+---
+title: "Simulation test"
+author: "Mollie Brooks"
+date: "10 June 2016"
+output: pdf_document
+---
+
+In this appendix we briefly describe functions for simulating growth and observations as described in the main text. The functions are part of the `growmod` package and are fully documented there. We then demonstrate how to use those functions to simulate datasets with sample sizes, life-hitories, and error rates based on the sheep data. This procedure should be used to check for bias in this method when it is applied to other systems with different sampling designs.
+
+##Preliminaries
+
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
+library(growmod)
+library(lme4)
+library(plyr)
+library(reshape2)
+library(ggplot2)
+library(MASS)
+library(knitr)
+```
+
+We want simulated individuals to have a similar life history as the real data, so we load in the sheep data (`dat`) that was already organized and saved in a file called `sheep data formated for package.Rdata`. This name should be replaced with your own organized data. Then we get the recapture rate (`recap`), number of individuals (`nind`), and the set of observed lifespans. To match the growth pattern of the sheep, we fit a model to the data and extract the parameters in a format that will be used by the simulation function `simobs`.
+```{r, eval=FALSE}
+load("../../../../restarting23Feb2016/sheep data formated for package.Rdata")
+lifespans=ddply(dat, ~ID, summarize, l=max(age))$l
+recap=mean(!is.na(dat$size))
+nind=length(unique(dat$ID))
+m0=growmod(~age+I(age^2), ~age, dat, REcohort=FALSE)
+pars=extract_coefs(m0)[,'est']
+names(pars)=extract_coefs(m0)[,'var']
+pars['size0_mu']=m0$fit$par['theta']
+pars['size0_sd']=exp(m0$fit$par['log_size0_sd'])
+```
+
+##Simulate the growth process
+The `simgrow` function simulates the growth process for a number of individuals from birth to death. The individuals are born and die in different years across the time span. Growth can vary among indivdiauls and among years. Individuals can have random slopes in addion to random intercepts, but here we only consider random intercepts for simplicity. However, there can't be any fixed effects other than age; this is a feature we would like to add in the future.
+
+##Simulate observations from the growth process
+The function `simobs` uses the `simgrow` function to simulate the growth process, then draws observations from that process with a given recapture probability `recap` and rate of observation error `sigma_obs`. It takes at least one observation per individual. It does not allow for any repeated measures of the same individual at the same timepoint (a scenario that is not ideal for estimating observation error); this is a feature we would like to change in the future.
+
+##Run simulations and fit models 
+
+The following code can be used to simulate data according to the values of `recap`, `sigma_obs`, `nind`, `pars`, and `lifespans` as caluculated above; and fit models to the data.
+```{r, eval=FALSE}
+nsim=1000
+parnames=c(extract_coefs(m0)$var, 'nobs')
+fits=array(dim=c(nsim, 2, length(parnames)), 
+           dimnames=list(nsim=1:nsim, model=c('LMM','SSM'), pars=parnames))
+for(i in 1:nsim)
+{
+	set.seed(i); cat(i,'\n') #to track down error if needed
+	sim=simobs(pars=pars, nind=1500, lifespans=lifespans, recap=recap, sigma_obs= sigma_obs)
+  dat2=ddply(organize_data(sim, sigma_obs)$Ldat$Predictors, ~ID, mutate,
+	  prevsize=size[match(age, age+1)]
+  )
+	mss=try(growmod(~age+I(age^2), ~age, data=sim, REcohort=FALSE))
+	mlm=try(lmer(size ~ prevsize + age+I(age^2) + age:prevsize +(1|ID) + (1|t), dat2,
+               control=lmerControl(check.nobs.vs.nlev='ignore',
+                                  check.nobs.vs.rankZ='ignore',
+                                  check.nobs.vs.nRE='ignore')))
+	if(class(mlm)=='try-error')
+	{
+		fits[i,j,k,'LMM',]=NA
+	}else{
+		fits[i,j,k,'LMM',]=c(fixef(mlm)[parnames[1:5]], 
+		                    attr(VarCorr(mlm)$ID, 'stddev'), 
+		                    attr(VarCorr(mlm)$t, 'stddev'),
+		                    NA,
+		                    attr(VarCorr(mlm), 'sc'), 
+		                    nrow(na.omit(dat2)))
+	}	
+	if(class(mss)=='try-error')
+	{
+		fits[i,j,k,'SSM',]=NA
+	}else{
+		fits[i,j,k,'SSM',]=c(extract_coefs(mss)$est, length(sim$size))
+	}
+}
+save(fits, m0, file='compare lmm ssm basic.Rdata')
+```
+
+##Summarize results
+For this specific model, we can use the following code to summarize the results. However, different formulas will require some tweeking. 
+```{r, eval=FALSE}
+m=melt(fits[,,,,-c(8,10)])
+true=extract_coefs(m0)[-8,c(1,3)]
+colnames(true)[1:2]=c('value', 'pars')
+true$pars=c('intercept', 'age', 'age^2', 'prevsize', 'prevsize:age', 
+		'sigma[indiv]', 'sigma[year]','sigma[process]')
+m$pars=factor(m$pars, labels=c('intercept', 'age', 'age^2', 'prevsize', 'prevsize:age', 
+		'sigma[indiv]', 'sigma[year]','sigma[process]'))
+m$true=true$value[match(m$pars, true$pars)]
+m$cv_obs=m$sigma_obs/true['(Intercept)', 'value']
+m$sigma_obs=round(m$sigma_obs, 3)
+m$cv_obs=round(m$cv_obs, 3)
+m$error=100*(m$value- m$true)/m$true
+```
+
+##View results
+The following code can be used to produce plots of the simulations.
+```{r, eval=FALSE}
+
+tmplabel = function(variable,value) {
+  if (variable=='cv_obs') 
+    {
+      llply(value, function(x)
+                  parse(text=paste('cv[obs]',x,sep='==')))
+    } else if (variable=='pars') 
+      {
+        llply(value, function(x)
+        		parse(text=c('intercept', 'age', 'age^2', 'size[t-1]', 'size[t-1]:age', 'sigma[indiv]', 'sigma[time]','sigma[obs]','sigma[process]')[x]))
+      }
+    else
+      {
+        llply(value, function(x) parse(text=paste('p[recapture]',x,sep='==')))
+      }
+}
+
+
+dum=data.frame(cv_obs=unique(m$cv_obs), 
+ 				value=unique(m$sigma_obs),
+				pars=unique(subset(m, pars=='sigma[obs]')$pars)
+				)
+
+p3=ggplot(subset(m, recap==1))+geom_hline(aes(yintercept =true))+
+  geom_line(data=dum, aes(y=value, x=cv_obs))+
+  geom_point(aes(y=value, x=cv_obs, colour=model), alpha=.05)+
+  theme_bw()
+p3+facet_grid(pars~., scale='free', switch="y", labeller= tmplabel)+ylab("estimated coefficient")+xlab("c.v. observation error")+
+	stat_smooth(aes(y=value, x=cv_obs, colour=model), method = "lm", formula = y ~ bs(x,3))
+ggsave("compareLMM_SMM_sim_obserr.png", height=8, width=4)
+
+s=subset(m, sigma_obs==.001)
+s$true[which(s$pars=='sigma[obs]')]=0.001
+p4=ggplot(s)+geom_hline(aes(yintercept =true))+
+  geom_point(aes(y=value, x=recap, colour=model), alpha=.05)+theme_bw()
+p4+facet_grid(pars~., scale='free', switch="y", labeller=tmplabel)+ylab("estimated coefficient")+xlab("recapture rate")+ 
+	stat_smooth(aes(y=value, x=recap, colour=model), method = "lm", formula = y ~ bs(x,3))+
+	theme(legend.position="none")
+ggsave("compareLMM_SMM_sim_recap.png", height=8, width=3)
+
+system(command="montage compareLMM_SMM_sim_recap.png compareLMM_SMM_sim_obserr.png -geometry +1+2 bias.png")
+```
