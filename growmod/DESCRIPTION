@@ -7,7 +7,7 @@ Description: This package fits growth models to capture-recapture data of indivi
 Depends:
     TMB,
     plyr
-License: What license is it under?
+License: AGPL-3
 LazyData: true
 LinkingTo: TMB, RcppEigen
 VignetteBuilder: knitr
