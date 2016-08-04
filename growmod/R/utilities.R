@@ -284,15 +284,15 @@ summary.growmod=function(mod)
 ##'
 ##' @param mod an object of type \code{growmod} that was fit to \code{data} using the \code{growmod()} function. See \code{?growmod} for details.
 ##' @param data the same data set that was used for fitting \code{mod}
-##' @return predictions from a growmod model on the same scale as the sizes provided (e.g. log kg)
+##' @return A data set containing interpolated values \code{size.interpolated}. These come from the estimated latent states so that, in addition to the fixed effects, these include process noise and any random effects.
 ##' @export
-extract_pred=function(mod, data){
+interpolate=function(mod, data){
 	od=organize_data(data, 0)
 	rr=summary(mod$sdr, "random")
 	nr=rownames(rr)
 	size=rr[nr=="size",]
 #	pred=cbind(od$Ldat$Predictors, size)
-	pred=cbind(od$Ldat$Predictors, size.est=size[,'Estimate'])
+	pred=cbind(od$Ldat$Predictors, size.interpolated=size[,'Estimate'])
 	return(pred)
 }	
 ###########################################
