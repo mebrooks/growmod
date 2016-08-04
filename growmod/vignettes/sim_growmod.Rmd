@@ -1,5 +1,10 @@
 %\VignetteEngine{knitr::rmarkdown}
 %\VignetteDepends{ggplot2}
+%\VignetteDepends{lme4}
+%\VignetteDepends{plyr}
+%\VignetteDepends{reshape2}
+%\VignetteDepends{MASS}
+%\VignetteDepends{knitr}
 ---
 title: "Simulation test"
 author: "Mollie Brooks"
