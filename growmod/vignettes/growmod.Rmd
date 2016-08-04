@@ -1,4 +1,5 @@
-%\VignetteEngine{knitr::knitr}
+%\VignetteEngine{knitr::rmarkdown}
+%\VignetteDepends{ggplot2}
 ---
 title: 'growmod package example'
 author: "Mollie Brooks"
