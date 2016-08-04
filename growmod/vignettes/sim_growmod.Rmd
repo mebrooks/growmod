@@ -1,17 +1,12 @@
 %\VignetteEngine{knitr::rmarkdown}
 %\VignetteDepends{ggplot2}
-%\VignetteDepends{lme4}
-%\VignetteDepends{plyr}
-%\VignetteDepends{reshape2}
-%\VignetteDepends{MASS}
-%\VignetteDepends{knitr}
 ---
-title: "Simulation test"
+title: 'Simulation test'
 author: "Mollie Brooks"
 date: "10 June 2016"
 output: pdf_document
 ---
-
+#Checking for bias using simulations
 In this appendix we briefly describe functions for simulating growth and observations as described in the main text. The functions are part of the `growmod` package and are fully documented there. We then demonstrate how to use those functions to simulate datasets with sample sizes, life-hitories, and error rates based on the sheep data. This procedure should be used to check for bias in this method when it is applied to other systems with different sampling designs.
 
 ##Preliminaries
