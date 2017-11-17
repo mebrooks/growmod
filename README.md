@@ -4,7 +4,8 @@ This package fits growth models to capture-recapture data of individual sizes. G
 
 Estimation is done in a state-space framework using maximum marginal likelihood estimation via [Template Model Builder](https://github.com/kaskr/adcomp).
 
-This package is part of a manuscript in review for publication.
+This package is part of a publication,
+M E Brooks, C Clements, J Pemberton, and A Ozgul, "Estimation of Individual Growth Trajectories When Repeated Measures Are Missing," The American Naturalist 190, no. 3 (September 2017): 377-388. https://doi.org/10.1086/692797
 
 ## Installation
 To install `growmod`, first install `TMB` from CRAN, then install `growmod` via
