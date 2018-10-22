@@ -5,9 +5,9 @@
 \title{A function for fitting an autoregressive model including fixed effect covariates and random effects.}
 \usage{
 growmod(formulaX = ~1, formulaM = ~1, data, estobserr = TRUE,
-  sigma_obs = NA, predfirstsize = NULL, DLL = "growmod", silent = TRUE,
-  selecting = FALSE, REtime = TRUE, REID = TRUE, REcohort = FALSE,
-  REageID = FALSE, ...)
+  sigma_obs = NA, formulafirstsize = NULL, DLL = "growmod",
+  silent = TRUE, selecting = FALSE, REtime = TRUE, REID = TRUE,
+  REcohort = FALSE, REageID = FALSE, ...)
 }
 \arguments{
 \item{formulaX}{a formula for the covariates that affect the intercept of the AR(1) model}
@@ -20,7 +20,7 @@ growmod(formulaX = ~1, formulaM = ~1, data, estobserr = TRUE,
 
 \item{sigma_obs}{the standard deviation of the observation error (i.e. measurement error) with the same units as size (e.g. log kg). Ignored if \code{estobserr=TRUE}.}
 
-\item{predfirstsize}{NULL if there are no predictors on first size, or a design matrix of predictors with one row per individual in the order as the individuals first apear in data}
+\item{formulafirstsize}{NULL if there are no predictors on first size, or a formula}
 
 \item{DLL}{the name of the compiled TMB/c++ file}
 
