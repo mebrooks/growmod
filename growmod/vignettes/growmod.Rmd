@@ -1,5 +1,6 @@
 %\VignetteEngine{knitr::rmarkdown}
 %\VignetteDepends{ggplot2}
+%\VignetteIndexEntry{growmod_basics}
 ---
 title: 'growmod package example'
 author: "Mollie Brooks"
