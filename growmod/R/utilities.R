@@ -148,7 +148,7 @@ growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NA,
 	}
 	if(estobserr)
 	{
-		Lpin$log_sigma_obs=log(mean(Ldat$obs)*0.05)#start at 5% error rate
+		Lpin$log_sigma_obs=0.05
 	}
 	##################################################
 	#What to do about first size
