@@ -14,4 +14,4 @@ LinkingTo: TMB, RcppEigen
 VignetteBuilder: knitr
 BugReports: https://github.com/mebrooks/growmod/issues
 URL: https://github.com/mebrooks/growmod/
-RoxygenNote: 5.0.1
+RoxygenNote: 7.2.1

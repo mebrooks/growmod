@@ -4,10 +4,22 @@
 \alias{growmod}
 \title{A function for fitting an autoregressive model including fixed effect covariates and random effects.}
 \usage{
-growmod(formulaX = ~1, formulaM = ~1, data, estobserr = TRUE,
-  sigma_obs = NA, formulafirstsize = NULL, DLL = "growmod",
-  silent = TRUE, selecting = FALSE, REtime = TRUE, REID = TRUE,
-  REcohort = FALSE, REageID = FALSE, ...)
+growmod(
+  formulaX = ~1,
+  formulaM = ~1,
+  data,
+  estobserr = TRUE,
+  sigma_obs = NA,
+  formulafirstsize = NULL,
+  DLL = "growmod",
+  silent = TRUE,
+  selecting = FALSE,
+  REtime = TRUE,
+  REID = TRUE,
+  REcohort = FALSE,
+  REageID = FALSE,
+  ...
+)
 }
 \arguments{
 \item{formulaX}{a formula for the covariates that affect the intercept of the AR(1) model}
@@ -43,12 +55,12 @@ a list of objects in the correct format to be read in by the TMB model defined i
 A function for fitting an autoregressive model including fixed effect covariates and random effects.
 }
 \details{
-\code{data} must at least the following columns: \code{size, t, t0}, and \code{ID}. 
-\code{size} is the size of an individual on the log scale. 
-\code{t} is the point in time when an observation was made. 
-\code{t} must be in discrete units (i.e. integers) with increments of 1. 
-\code{t0} is the time when an individual was born. 
-\code{ID} is a unique identifier for each individaul. 
+\code{data} must at least the following columns: \code{size, t, t0}, and \code{ID}.
+\code{size} is the size of an individual on the log scale.
+\code{t} is the point in time when an observation was made.
+\code{t} must be in discrete units (i.e. integers) with increments of 1.
+\code{t0} is the time when an individual was born.
+\code{ID} is a unique identifier for each individaul.
 \code{data} must contain at least one row per combination of individual and time. Multiple rows may exist if an individual was measured more than once at the same timepoint; these multiple measurements are very informative for the estimation of observation error. If multiple rows for the same combination of individual and time are given, then only the covariates from the first instance is used. If a size observation was missed for one combination of individual and time, then that row should have an \code{NA} in the size column, but must contian any covariates. There must be at least one non-missing size for each individual. A call of \code{growmod(~x, ~1, dat)} is analogous to \code{lmer(size ~ sizeprevious + x + (1|ID) + (1|t), dat)}.
 }
 \examples{
@@ -58,4 +70,3 @@ m1=growmod(~1, ~1, data=sg, REcohort=FALSE)
 summary(m1)
 
 }
-

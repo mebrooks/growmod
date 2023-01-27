@@ -29,7 +29,7 @@ if(any(indivdat$bad)){stop("Each individual must have a row of data for every ti
 
 #take care of repeated measures at the same time point
 noreps=ddply(data, ~iID+it, summarize, size=mean(size))
-preddat=join(noreps, data[,-grep("size", names(data))], match="first", by=c('iID', 'it'))
+preddat=plyr::join(noreps, data[,-grep("size", names(data))], match="first", by=c('iID', 'it'))
 noreps$size[is.na(noreps$size)]=mean(noreps$size, na.rm=TRUE)
 tmp= preddat[, c('it', 'iID')]#no rep sizes
 tmp$value=0:(nrow(tmp)-1)
@@ -148,7 +148,7 @@ growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NA,
 	}
 	if(estobserr)
 	{
-		Lpin$log_sigma_obs=0.05
+		Lpin$log_sigma_obs=log(0.05)
 	}
 	##################################################
 	#What to do about first size
@@ -182,6 +182,7 @@ growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NA,
 				Xnames=colnames(Ldat$X), Mnames=colnames(Ldat$M), Bnames=colnames(Ldat$B),
 				formulaX= formulaX, formulaM= formulaM,
 				AIC=TMBAIC(fit, n=length(Ldat$obs)),
+				BIC=TMBBIC(fit, n=length(Ldat$obs)),
 				nobs=length(Ldat$obs),
 				nmis=length(Lpin$size)-length(Ldat$obs),
 				recap=length(Ldat$obs)/length(Lpin$size)
@@ -197,6 +198,7 @@ growmod=function(formulaX=~1, formulaM=~1, data, estobserr=TRUE, sigma_obs = NA,
 				Xnames=colnames(Ldat$X), Mnames=colnames(Ldat$M), Bnames=colnames(Ldat$B),
 				formulaX= formulaX, formulaM= formulaM,
 				AIC=NA,
+				BIC=NA,
 				nobs=length(Ldat$obs),
 				nmis=length(Lpin$size)-length(Ldat$obs),
 				recap=length(Ldat$obs)/length(Lpin$size)
@@ -218,6 +220,19 @@ TMBAIC=function(opt, n=NULL, correction=TRUE)
 	k=length(opt[["par"]])
 	if(correction){return(2*k + 2*l + 2*k*(k+1)/(n-k-1))}
 	return(2*k + 2*l)
+}
+###########################################
+##' Calculate the Bayesian Information Criteria
+##'
+##' @param opt an optimized TMB model
+##' @param n number of observations
+##' @export
+TMBBIC=function(opt, n=NULL)
+{
+	if(is.null(n)){stop("Sample size n needed to calculate AICc.")}
+	l=opt[["objective"]] #negative log likelihood
+	k=length(opt[["par"]])
+	return(k*log(n) + 2*l)
 }
 ###########################################
 ##' Extract coefficients from a fitted model and give the coefficients more informative names based on the specified formulas.
@@ -423,7 +438,7 @@ simobs=function(pars, nind=150, ntime=29, maxage=12, lifespans=NULL, recap=.5, s
 	dat2=do.call(rbind, sd2)
 	dat2 $size=rnorm(n=nrow(dat2), mean=dat2$size, sd=sigma_obs) #observed sizes
 
-	obs=join(dat[,-1], dat2, by=c('t', 'ID', 'age', 't0', 'T'))
+	obs=plyr::join(dat[,-1], dat2, by=c('t', 'ID', 'age', 't0', 'T'))
 	return(obs)
 }
 ##########################################
